@@ -4,6 +4,7 @@ import (
 	"fmt"
 	//"io"
 	"io/ioutil"
+	"os"
 )
 
 type Stream struct {
@@ -61,9 +62,22 @@ func (s *Stream) ReadBytes(count int) []byte {
 }
 
 func main() {
-	r := ReadReplay("3994.osr")
+	args := os.Args[1:]
 	
-	fmt.Println(r)
+	for i := 0; i < len(args); i++ {
+		r, err := ReadReplay(args[i])
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+		
+		err = ioutil.WriteFile("Raw-" + args[i], r.ReplayData, 0644)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+		fmt.Println(fmt.Sprintf("Processed Replay: %v (%d/%d)", args[i], i+1, len(args)))
+	}
 	
 	/*fmt.Println(r.Lifebar)
 	fmt.Println(r.TimeTicks)
@@ -100,13 +114,13 @@ Combo: %d, Full Combo: %t
 Mods used: %d`, r.Gamemode, r.OsuVersion, r.MapHash, r.PlayerName, r.ReplayHash, r.Count300, r.Count100, r.Count50, r.CountGeki, r.CountKatu, r.CountMiss, r.Score, r.Combo, r.FullCombo, r.Mods)
 }
 
-func ReadReplay(path string) Replay {
+func ReadReplay(path string) (Replay, error) {
 	var r Replay
 	
 	f, err := ioutil.ReadFile(path) // f == byte array
 	
 	if err != nil {
-		panic(err)
+		return r, err
 	}
 
 	var ms = Stream{f, 0}
@@ -133,5 +147,5 @@ func ReadReplay(path string) Replay {
 	r.ReplayData = f[ms.position:len(f)-8]
 	ms.position += len(r.ReplayData)
 	r.ReplayId = ms.ReadInt64()
-	return r
+	return r, nil
 }
